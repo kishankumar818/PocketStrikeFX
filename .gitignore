@@ -4,6 +4,8 @@
 *.pyc
 *.swp
 *.apk
+!apk-distribution/app-debug.apk
+!apk-distribution/app-debug.apk.sha256
 *.aab
 .DS_Store
 .atom/

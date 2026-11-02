@@ -1,0 +1,164 @@
+name: Build & Publish Android Debug APK
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-publish-apk:
+    name: Build, Verify & Release Debug APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Accept Android SDK Licenses
+        run: |
+          yes | sdkmanager --licenses >/dev/null 2>&1 || true
+
+      - name: Set up Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Build Debug APK
+        run: |
+          set -euo pipefail
+          flutter --version
+          flutter config --no-analytics
+          flutter pub get
+
+          # Tune JVM memory for CI runner stability
+          export GRADLE_OPTS="-Dorg.gradle.jvmargs=-Xmx4g -Dorg.gradle.daemon=false"
+
+          flutter build apk --debug
+
+          mkdir -p apk-distribution
+
+          if [ -f "build/app/outputs/flutter-apk/app-debug.apk" ]; then
+            cp -f "build/app/outputs/flutter-apk/app-debug.apk" "apk-distribution/app-debug.apk"
+          elif [ -f "build/app/outputs/apk/debug/app-debug.apk" ]; then
+            cp -f "build/app/outputs/apk/debug/app-debug.apk" "apk-distribution/app-debug.apk"
+          elif [ -f "android/app/build/outputs/apk/debug/app-debug.apk" ]; then
+            cp -f "android/app/build/outputs/apk/debug/app-debug.apk" "apk-distribution/app-debug.apk"
+          else
+            echo "Error: Compiled debug APK not found in expected build output paths." >&2
+            exit 1
+          fi
+
+          (
+            cd apk-distribution
+            sha256sum app-debug.apk > app-debug.apk.sha256
+          )
+
+      - name: Validate APK & Checksum
+        id: verify_apk
+        run: |
+          set -euo pipefail
+
+          APK_PATH="apk-distribution/app-debug.apk"
+          SHA_PATH="apk-distribution/app-debug.apk.sha256"
+
+          if [ ! -f "$APK_PATH" ]; then
+            echo "Error: $APK_PATH does not exist." >&2
+            exit 1
+          fi
+
+          if [ ! -s "$APK_PATH" ]; then
+            echo "Error: $APK_PATH is empty." >&2
+            exit 1
+          fi
+
+          if [ ! -f "$SHA_PATH" ]; then
+            echo "Error: $SHA_PATH does not exist." >&2
+            exit 1
+          fi
+
+          # Verify recorded SHA-256 matches actual file checksum
+          (
+            cd apk-distribution
+            sha256sum -c app-debug.apk.sha256
+          )
+
+          # Verify ZIP archive integrity
+          unzip -tq "$APK_PATH"
+
+          # Verify APK signature if apksigner is available in Android SDK
+          APKSIGNER_BIN=$(find "${ANDROID_HOME:-/usr/local/lib/android/sdk}/build-tools" -name apksigner 2>/dev/null | sort -V | tail -n 1 || true)
+          if [ -n "$APKSIGNER_BIN" ] && [ -x "$APKSIGNER_BIN" ]; then
+            "$APKSIGNER_BIN" verify --verbose "$APK_PATH"
+          fi
+
+          ACTUAL_SHA256=$(sha256sum "$APK_PATH" | awk '{print $1}')
+          APK_SIZE_BYTES=$(stat -c%s "$APK_PATH")
+          APK_SIZE_HUMAN=$(du -h "$APK_PATH" | awk '{print $1}')
+
+          echo "sha256=${ACTUAL_SHA256}" >> "$GITHUB_OUTPUT"
+          echo "size_bytes=${APK_SIZE_BYTES}" >> "$GITHUB_OUTPUT"
+          echo "size_human=${APK_SIZE_HUMAN}" >> "$GITHUB_OUTPUT"
+
+      - name: Publish GitHub Release
+        id: publish_release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          RELEASE_TAG="debug-apk-build-${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}"
+          RELEASE_TITLE="Android Debug APK (${RELEASE_TAG})"
+          DIRECT_URL="https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/app-debug.apk"
+          RELEASE_PAGE="https://github.com/${GITHUB_REPOSITORY}/releases/tag/${RELEASE_TAG}"
+
+          NOTES=$(cat <<EOF
+          ### PocketStrike Android Debug APK
+          - **Release Tag:** \`${RELEASE_TAG}\`
+          - **APK Filename:** \`app-debug.apk\`
+          - **APK Size:** \`${{ steps.verify_apk.outputs.size_human }} (${{ steps.verify_apk.outputs.size_bytes }} bytes)\`
+          - **SHA-256 Checksum:** \`${{ steps.verify_apk.outputs.sha256 }}\`
+          - **Direct Download (Latest):** [app-debug.apk](${DIRECT_URL})
+          EOF
+          )
+
+          gh release create "$RELEASE_TAG" \
+            "apk-distribution/app-debug.apk#app-debug.apk" \
+            "apk-distribution/app-debug.apk.sha256#app-debug.apk.sha256" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$RELEASE_TITLE" \
+            --notes "$NOTES" \
+            --latest
+
+          echo "tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
+          echo "release_page=${RELEASE_PAGE}" >> "$GITHUB_OUTPUT"
+          echo "direct_url=${DIRECT_URL}" >> "$GITHUB_OUTPUT"
+
+      - name: Write Job Summary
+        run: |
+          cat <<EOF >> "$GITHUB_STEP_SUMMARY"
+          ## Android Debug APK Published Successfully
+
+          | Field | Value |
+          | :--- | :--- |
+          | **Application** | PocketStrike (\`com.pocketstrike.pocketstrike\`) |
+          | **Release Tag** | \`${{ steps.publish_release.outputs.tag }}\` |
+          | **APK Size** | \`${{ steps.verify_apk.outputs.size_human }} (${{ steps.verify_apk.outputs.size_bytes }} bytes)\` |
+          | **SHA-256 Checksum** | \`${{ steps.verify_apk.outputs.sha256 }}\` |
+          | **GitHub Release Page** | [${{ steps.publish_release.outputs.release_page }}](${{ steps.publish_release.outputs.release_page }}) |
+          | **Direct Latest APK Download URL** | [${{ steps.publish_release.outputs.direct_url }}](${{ steps.publish_release.outputs.direct_url }}) |
+          EOF
