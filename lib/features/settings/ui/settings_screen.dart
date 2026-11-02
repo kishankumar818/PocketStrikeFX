@@ -7,6 +7,7 @@ import 'package:pocketstrike/app/theme/glass_tokens.dart';
 import 'package:pocketstrike/app/theme/theme_controller.dart';
 import 'package:pocketstrike/shared/widgets/app_icons.dart';
 import 'package:pocketstrike/features/settings/ui/personas_sheet.dart';
+import 'package:pocketstrike/features/settings/ui/rea_engine_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Main settings menu grouping all app configurations into sleek glass tiles.
@@ -74,7 +75,7 @@ class SettingsScreen extends ConsumerWidget {
           ),
           _SettingsTile(
             icon: AppIcons.brain,
-            title: 'System Personas',
+            title: 'Skills & System Personas',
             subtitle: 'General, Coding, Research & custom AI personas',
             onTap: () => PersonasSheet.show(context),
           ),
@@ -98,10 +99,18 @@ class SettingsScreen extends ConsumerWidget {
           ),
           _SettingsTile(
             icon: AppIcons.wrench,
-            title: 'Agent Tools & Capabilities',
-            subtitle: 'Filesystem, web search, calculator, code sandbox',
+            title: 'Termux Tools & Agent Capabilities',
+            subtitle: 'Filesystem, Termux bridge, web search, code sandbox',
             onTap: () => context.push('/settings/tools'),
           ),
+          _SettingsTile(
+            icon: Icons.biotech_rounded,
+            title: '🔴 REA Engine',
+            subtitle: 'Reverse Engineering Core for AI Agent (/SOURCE_READER/rea/)',
+            onTap: () => context.push(AppRoutes.settingsRea),
+          ),
+          const SizedBox(height: 8),
+          const ReaEngineSectionCard(),
 
           const SizedBox(height: 12),
           const _SectionHeader(title: 'INTEGRATIONS & STORAGE'),

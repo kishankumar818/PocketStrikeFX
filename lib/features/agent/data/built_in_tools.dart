@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import '../domain/agent_tool.dart';
+import '../../settings/ui/rea_engine_screen.dart';
 import 'android_automation_tools.dart';
 import 'device_tools.dart';
 import 'document_tools.dart';
@@ -14,6 +15,7 @@ class BuiltInTools {
   static List<AgentTool> all({List<String> allowedRoots = const []}) => [
         currentTime(),
         calculator(),
+        ...ReaAgentTools.all(),
         ...DeviceAgentTools.all(),
         ...AndroidAutomationTools.all(),
         ...DocumentAgentTools.all(),

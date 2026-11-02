@@ -1,0 +1,5 @@
+{
+  "name": "Source Reader — PocketStrike AI & REA Engine",
+  "description": "Offline-first AI reverse-engineering workspace and Android APK source recovery agent powered by the REA Engine MCP toolkit.",
+  "requestFramePermissions": []
+}

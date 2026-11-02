@@ -16,6 +16,7 @@ import 'package:pocketstrike/features/settings/ui/memory_settings_screen.dart';
 import 'package:pocketstrike/features/settings/ui/model_params_screen.dart';
 import 'package:pocketstrike/features/settings/ui/provider_edit_screen.dart';
 import 'package:pocketstrike/features/settings/ui/providers_settings_screen.dart';
+import 'package:pocketstrike/features/settings/ui/rea_engine_screen.dart';
 import 'package:pocketstrike/features/settings/ui/settings_screen.dart';
 import 'package:pocketstrike/features/gallery/ui/gallery_screen.dart';
 import 'package:pocketstrike/features/settings/ui/storage_settings_screen.dart';
@@ -34,6 +35,7 @@ abstract class AppRoutes {
   static const settingsModels = '/settings/models';
   static const settingsAppearance = '/settings/appearance';
   static const settingsMcp = '/settings/mcp';
+  static const settingsRea = '/settings/rea';
   static const settingsTelegram = '/settings/telegram';
   static const settingsStorage = '/settings/storage';
   static const settingsTools = '/settings/tools';
@@ -108,6 +110,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.settingsMcp,
         builder: (context, state) => const McpSettingsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.settingsRea,
+        builder: (context, state) => const ReaEngineScreen(),
       ),
       GoRoute(
         path: AppRoutes.settingsTelegram,

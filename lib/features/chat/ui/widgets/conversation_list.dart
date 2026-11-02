@@ -124,6 +124,7 @@ class _ConversationTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tokens = context.glass;
     final actions = ref.read(conversationActionsProvider);
+    final reaActive = ref.watch(reaEngineProvider).isActive;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 1.5),
@@ -178,9 +179,34 @@ class _ConversationTile extends ConsumerWidget {
                           ),
                     ),
                   ),
+                  if (reaActive)
+                    Container(
+                      margin: const EdgeInsets.only(left: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 5, vertical: 1.5),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEF4444).withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(
+                          color: const Color(0xFFEF4444).withValues(alpha: 0.4),
+                          width: 0.6,
+                        ),
+                      ),
+                      child: const Text(
+                        'REA Engine',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFFFCA5A5),
+                        ),
+                      ),
+                    ),
                   if (conversation.pinned)
-                    Icon(AppIcons.pin,
-                        size: 13, color: tokens.accent),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 4),
+                      child: Icon(AppIcons.pin,
+                          size: 13, color: tokens.accent),
+                    ),
                 ],
               ),
             ),

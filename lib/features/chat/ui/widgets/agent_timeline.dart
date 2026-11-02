@@ -207,7 +207,14 @@ class _StepRow extends StatelessWidget {
     final tokens = context.glass;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    final isReaCall = (step.toolName ?? '').startsWith('rea__') ||
+        (step.toolName ?? '').startsWith('mcp__rea__');
+    final cleanReaTool = (step.toolName ?? '')
+        .replaceFirst('mcp__rea__', '')
+        .replaceFirst('rea__', '');
+
     final (marker, color) = switch (step.type) {
+      'toolCall' when isReaCall => ('🔴', const Color(0xFFEF4444)),
       'toolCall' => ('⚡', tokens.accent),
       'observation' when step.isError => ('✗', Colors.redAccent),
       'observation' => ('✓', isDark ? Colors.tealAccent : Colors.teal),
@@ -217,6 +224,8 @@ class _StepRow extends StatelessWidget {
     };
 
     final detail = switch (step.type) {
+      'toolCall' when isReaCall =>
+        'rea › $cleanReaTool  ${_prettyArgs(step.argumentsJson)}',
       'toolCall' => '${step.toolName}  ${_prettyArgs(step.argumentsJson)}',
       'observation' when step.toolName == 'generate_image' =>
         'Image generated and displayed.',
